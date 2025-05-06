@@ -7,7 +7,7 @@ from utilities import get_yt, transcribe_yt
 #Creating the front-end 
 # st.markdown("Gaming Video and Website Moderator")
 st.title("Gaming Videos and Website Moderator")
-st.title("Check gaming video and website suitability for your child")
+st.markdown("Check gaming video and website suitability for your child")
 st.warning("Awaiting URL input in the sidebar")
 
 #Creating the sidebar
