@@ -15,7 +15,10 @@ bar = st.progress(0)
 #Taking the API 
 #Making a try-catch block by chatgpt
 try:
-    api_key = st.secrets['general']['api_key']
+    api_key = st.secrets["general"]["api_key"]
+    #chatgpt code
+    st.write("Available secrets:", st.secrets)
+
 except KeyError:
     st.error("API key not found, check your secrets configuration.")
     st.stop()
