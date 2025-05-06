@@ -6,6 +6,7 @@ import os
 from time import sleep
 import requests
 import yt_dlp
+from yt_dlp import YoutubeDL
 from zipfile import ZipFile
 
 #You are creating a status bar so that they know what is the progress of your transaction 
@@ -48,15 +49,15 @@ def get_yt(URL):
     ydl_opts = {
         'format': 'bestaudio/best',
         'outtmpl': 'downloaded_audio.%(ext)s',
-        'quiet': True,
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
             'preferredquality': '192',
         }],
+        'quiet': True,
     }
 
-    with yt_dlp.YouTubeDL(ydl_opts) as ydl:
+    with YoutubeDL(ydl_opts) as ydl:
         ydl.download([URL])
     
     #Updating the bar progress
