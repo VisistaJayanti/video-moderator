@@ -34,13 +34,17 @@ if submit_button:
     get_yt(URL)
     transcribe_yt()
 
-    with open("transcription.zip", "rb") as zip_download:
-        btn = st.download_button(
+    #Adding a try-catch block to see if the zip file does not occur
+    try:
+        with open("transcription.zip", "rb") as zip_download:
+         btn = st.download_button(
             label = "Download ZIP",
             data = zip_download,
             file_name = "transcription.zip",
             mime = "application/zip"
         )
+    except FileNotFoundError:
+        st.error("Download failed, ZIP file not found.")
 
 with st.sidebar.expander("Refer to the example URL: "):
     st.code("https://www.youtube.com/watch?v=ARECxDukHvE")
