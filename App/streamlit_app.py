@@ -1,8 +1,8 @@
 #This will be the front-end of the application
 #Importing all the necessary libraries and packages 
 import streamlit as st
-from pytube import YouTube
-from utilities import get_yt, transcribe_yt
+import yt_dlp
+from utilities import get_yt, upload_audio, transcribe_yt
 from PIL import Image
 
 #Loading the image 
@@ -31,13 +31,14 @@ with st.sidebar.form(key='my_form'):
 
 #Run custom functions if URL is entered 
 if submit_button:
-    get_yt(URL)
-    transcribe_yt()
+    audio_file = get_yt(URL)
+    audio_url = upload_audio(audio_file)
+    transcribe_yt(audio_url)
 
     #Adding a try-catch block to see if the zip file does not occur
     try:
         with open("transcription.zip", "rb") as zip_download:
-         btn = st.download_button(
+         st.download_button(
             label = "Download ZIP",
             data = zip_download,
             file_name = "transcription.zip",
