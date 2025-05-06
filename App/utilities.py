@@ -13,7 +13,7 @@ from zipfile import ZipFile
 bar = st.progress(0)
 
 #Taking the API 
-api_key = st.secrets['api_key']
+api_key = st.secrets['general']['api_key']
 
 #Retrieving the audio file from YouTube video 
 def get_yt(inputURL):
@@ -26,16 +26,31 @@ def get_yt(inputURL):
 
 #Uploading the audio file to assemblyAI
 #The automatic speech to text translation will be doen by assemblyAI
+# def transcribe_yt():
+#     current_dir = os.getcwd()
+
+#     for file in os.listdir(current_dir):
+#         if file.endswith(".mp4"):
+#             mp4_file = os.path.join(current_dir, file)
+
+#     filename = mp4_file
+#     bar.progress(20)
+
+#Chatgpt code 
 def transcribe_yt():
     current_dir = os.getcwd()
 
     for file in os.listdir(current_dir):
         if file.endswith(".mp4"):
             mp4_file = os.path.join(current_dir, file)
-
+    
     filename = mp4_file
     bar.progress(20)
-
+    
+    if not mp4_file:
+        st.error("No mp4 file found in the curent directory")
+        return
+    
     #Reading the file 
     def read_file(filename, chunk_size=5242880):
         with open(filename, 'rb') as _file:
