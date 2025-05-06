@@ -5,15 +5,16 @@ from pytube import YouTube
 from utilities import get_yt, transcribe_yt
 
 #Creating the front-end 
-st.markdown("Gaming Video and Website Moderator")
+# st.markdown("Gaming Video and Website Moderator")
+st.title("Gaming Videos and Website Moderator")
 st.title("Check gaming video and website suitability for your child")
 st.warning("Awaiting URL input in the sidebar")
 
 #Creating the sidebar
-st.sidebar.header('Input Parameter')
+st.sidebar.header('Check the suitability: ')
 
 with st.sidebar.form(key='my_form'):
-    URL = st.text_input("Enter URL; of YouTube videos or shorts: ")
+    URL = st.text_input("Enter URL of YouTube vides or shorts ")
     submit_button = st.form_submit_button(label="Go")
 
 #Run custom functions if URL is entered 
