@@ -3,10 +3,22 @@
 import streamlit as st
 from pytube import YouTube
 from utilities import get_yt, transcribe_yt
+from PIL import Image
+
+#Loading the image 
+logo = Image.open("Assets/logo.png")
+
+#Creating a layout for the logo and title to be displayed side by side 
+col1, col2 = st.columns([1,5])
+with col1:
+    st.image(logo, width=60)
+with col2:
+    st.title("Gaming Videos and Website Moderator")
+
 
 #Creating the front-end 
 # st.markdown("Gaming Video and Website Moderator")
-st.title("Gaming Videos and Website Moderator")
+# st.title("Gaming Videos and Website Moderator")
 st.markdown("Check gaming video and website suitability for your child")
 st.warning("Awaiting URL input in the sidebar")
 
