@@ -9,9 +9,9 @@ from PIL import Image
 logo = Image.open("Assets/logo.png")
 
 #Creating a layout for the logo and title to be displayed side by side 
-col1, col2 = st.columns([1,5])
+col1, col2 = st.columns([4,6])
 with col1:
-    st.image(logo, width=60)
+    st.image(logo, width=100)
 with col2:
     st.title("Gaming Videos and Website Moderator")
 
