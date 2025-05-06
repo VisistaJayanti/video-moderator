@@ -24,8 +24,8 @@ except KeyError:
     st.stop()
 
 #Retrieving the audio file from YouTube video 
-def get_yt(inputURL):
-    video = YouTube(inputURL)
+def get_yt(URL):
+    video = YouTube(URL)
     yt = video.streams.get_audio_only()
     yt.download()
 
