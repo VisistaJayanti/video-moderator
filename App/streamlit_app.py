@@ -33,7 +33,7 @@ with st.sidebar.form(key='my_form'):
 if submit_button:
     audio_file = get_yt(URL)
     audio_url = upload_audio(audio_file)
-    transcribe_yt(audio_url)
+    transcribe_yt(audio_file)
 
     #Adding a try-catch block to see if the zip file does not occur
     try:

@@ -47,8 +47,13 @@ def get_yt(URL):
 
     ydl_opts = {
         'format': 'bestaudio/best',
+        'outtmpl': 'downloaded_audio.%(ext)s',
         'quiet': True,
-        'outtmpl': 'audio.%(ext)s',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
     }
 
     with yt_dlp.YouTubeDL(ydl_opts) as ydl:
@@ -57,7 +62,7 @@ def get_yt(URL):
     #Updating the bar progress
     bar.progress(20)
     st.success("Audio downloaded as 'audio.webm")
-    return "audio.webm"
+    return "downloaded_audio.mp3"
 #Uploading the audio file to assemblyAI
 #The automatic speech to text translation will be doen by assemblyAI
 # def transcribe_yt():
@@ -89,46 +94,66 @@ def upload_audio(filename):
 
             
 #Chatgpt code 
-def transcribe_yt(audio_url):
+def transcribe_yt(filename):
+    bar.progress(30)
+    
+    def read_file(filename, chunk_size=5242880):
+        with open(filename, 'rb') as _file:
+            while True:
+                data = _file.read(chunk_size)
+                if not data:
+                    break
+                yield data
+
+    headers = {'authorization': api_key}
+    response = requests.post('https://api.assemblyai.com/v2/upload', headers=headers, data=read_file(filename))
+    audio_url = response.json()['upload_url']
+    st.info("3. Audio uploaded to AssemblyAI")
+    bar.progress(50)
+
+    # Transcription request with content safety
     endpoint = "https://api.assemblyai.com/v2/transcript"
-    json_data = {
+    json = {
         "audio_url": audio_url,
-        "content_safety": True
+        "content_safety": True,
     }
 
-    response = requests.post(endpoint, json=json_data, headers=headers)
-    transcript_id = response.json()['id']
-    bar.progress(60)
+    transcript_response = requests.post(endpoint, json=json, headers=headers)
+    transcript_id = transcript_response.json()['id']
+    polling_endpoint = f"https://api.assemblyai.com/v2/transcript/{transcript_id}"
 
-    #Poll for completion
-    status = "queued"
-    while status not in ["completed", "error"]:
-        polling_response = requests.get(f"{endpoint}/{transcript_id}", headers=headers)
+    st.info("4. Transcribing...")
+
+    while True:
+        polling_response = requests.get(polling_endpoint, headers=headers)
         status = polling_response.json()['status']
+
+        if status == 'completed':
+            st.success("Transcription completed")
+            bar.progress(100)
+            break
+        elif status == 'error':
+            st.error("Transcription failed.")
+            return
         sleep(3)
 
-    bar.progress(90)
+    # Save transcription text
+    transcript_text = polling_response.json()['text']
+    with open("transcript.txt", "w") as f:
+        f.write(transcript_text)
 
-    if status == "completed":
-        result = polling_response.json()
-        #Save transcript
-        with open("transcript.txt", "w") as f:
-            f.write(result["text"])
-
-        #Save content safety analysis
-        with open("content_safety.json", "w") as f:
-            f.write(str(result["content_safety_labels"]))
-
-        #Zip results
-        with ZipFile("transcription.zip", "w") as zipf:
-            zipf.write("transcription.txt")
-            zipf.write("content_safety.json")
-
-        bar.progress(100)
-        st.success("Transcription and content safety completed")
+    # Save content safety results
+    safety_labels = polling_response.json().get("content_safety_labels", {})
+    if safety_labels:
+        for label in safety_labels["results"]:
+            st.markdown(f"""
+            **Label:** {label['label']}  
+            **Confidence:** {label['confidence']:.2f}  
+            **Severity:** {label['severity']}  
+            """)
     else:
-        st.error("Transcription failed.")
+        st.success("No content safety violations found.")
 
-
-    
-  
+    # Zip download (optional)
+    with ZipFile("transcription.zip", "w") as zipf:
+        zipf.write("transcript.txt")
