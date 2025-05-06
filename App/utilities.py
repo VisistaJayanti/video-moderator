@@ -13,7 +13,12 @@ from zipfile import ZipFile
 bar = st.progress(0)
 
 #Taking the API 
-api_key = st.secrets['general']['api_key']
+#Making a try-catch block by chatgpt
+try:
+    api_key = st.secrets['general']['api_key']
+except KeyError:
+    st.error("API key not found, check your secrets configuration.")
+    st.stop()
 
 #Retrieving the audio file from YouTube video 
 def get_yt(inputURL):
