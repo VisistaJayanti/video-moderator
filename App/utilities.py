@@ -62,7 +62,7 @@ def get_yt(URL):
     
     #Updating the bar progress
     bar.progress(20)
-    st.success("Audio downloaded as 'audio.webm")
+    st.success("Audio file has been successfully downloaded as mp3.")
     return "downloaded_audio.mp3"
 #Uploading the audio file to assemblyAI
 #The automatic speech to text translation will be doen by assemblyAI
@@ -156,12 +156,33 @@ def transcribe_yt(filename):
     if safety_labels and "results" in safety_labels:
         st.markdown("### Potentially Harmful Content Detected:")
         for result in safety_labels["results"]:
-            label = result.get("label", "Unknown")
-            confidence = result.get("confidence", 0)
-            severity = result.get("severity", "unknown")
-            st.write(f"• **Label:** {label}, **Confidence:** {confidence:.2f}, **Severity:** {severity}")
-    else:
-        st.success("No harmful content detected.")
+            label = result.get("label", None)
+            confidence = result.get("confidence", None)
+            severity = result.get("severity", None)
+            
+            if label and confidence is not None and severity:
+                col1, col2, col3 = st.columns([2,4,2])
+
+                with col1:
+                    st.markdown(f"**Label:** {label.capitalize()}")
+                
+                with col2:
+                    st.markdown("**Confidence:**")
+                    st.progress(int(confidence*100))
+                
+                with col3:
+                    st.markdown("**Severity:**")
+                    severity_color = {
+                        "low": "🟢 Low",
+                        "medium": "🟡 Medium",
+                        "high": "🔴 High"
+                    }.get(severity.lower(), "⚪ Unkown")
+                    st.markdown(f"<div style='font-size:16px'>{severity_color}</div>", unsafe_allow_html=True)
+            
+            else:
+                st.warning("Some content safety results were incomplete or missing expected fields.")
+        else:
+            st.success("No harmful content detected.")
 
     # Zip download (optional)
     with ZipFile("transcription.zip", "w") as zipf:
