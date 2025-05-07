@@ -156,9 +156,9 @@ def transcribe_yt(filename):
     if safety_labels and "results" in safety_labels:
         st.markdown("### Potentially Harmful Content Detected:")
         for result in safety_labels["results"]:
-            label = result.get("label", {label})
-            confidence = result.get("confidence", {confidence})
-            severity = result.get("severity", {severity})
+            label = result.get("label", None)
+            confidence = result.get("confidence", None)
+            severity = result.get("severity", None)
             
             if label and confidence is not None and severity:
                 col1, col2, col3 = st.columns([2,4,2])
