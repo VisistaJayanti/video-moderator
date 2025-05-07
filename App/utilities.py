@@ -150,7 +150,7 @@ def transcribe_yt(filename):
     
      # DEBUG: Display the full content safety labels for inspection
     st.subheader("Content Safety Labels")
-    st.write(safety_labels.json())  # This shows the entire JSON content in a pretty format
+    st.json(safety_labels)  # This shows the entire JSON content in a pretty format
     
 
     # Zip download (optional)
