@@ -146,6 +146,8 @@ def transcribe_yt(filename):
     # Save content safety results
     # Save content safety results
     safety_labels = polling_response.json().get("content_safety_labels", {})
+    #Add the debug line to check what it is returning 
+    st.write("Raw safety_labels:", safety_labels)
     labels = safety_labels.get("results", [])
 
 # ✅ Check if there are any labels returned
