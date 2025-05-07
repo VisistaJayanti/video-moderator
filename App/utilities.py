@@ -150,39 +150,8 @@ def transcribe_yt(filename):
     
      # DEBUG: Display the full content safety labels for inspection
     st.subheader("Content Safety Labels")
-    st.json(safety_labels)  # This shows the entire JSON content in a pretty format
-
-    # Optionally, process the labels if they exist
-    # if safety_labels and "results" in safety_labels:
-    #     st.markdown("### Potentially Harmful Content Detected:")
-    #     for result in safety_labels["results"]:
-    #         label = result.get("label", None)
-    #         confidence = result.get("confidence", None)
-    #         severity = result.get("severity", None)
-            
-    #         if label and confidence is not None and severity:
-    #             col1, col2, col3 = st.columns([2,4,2])
-
-    #             with col1:
-    #                 st.markdown(f"**Label:** {label.capitalize()}")
-                
-    #             with col2:
-    #                 st.markdown("**Confidence:**")
-    #                 st.progress(int(confidence*100))
-                
-    #             with col3:
-    #                 st.markdown("**Severity:**")
-    #                 severity_color = {
-    #                     "low": "🟢 Low",
-    #                     "medium": "🟡 Medium",
-    #                     "high": "🔴 High"
-    #                 }.get(severity.lower(), "⚪ Unkown")
-    #                 st.markdown(f"<div style='font-size:16px'>{severity_color}</div>", unsafe_allow_html=True)
-            
-    #         else:
-    #             st.warning("Some content safety results were incomplete or missing expected fields.")
-    #     else:
-    #         st.success("No harmful content detected.")
+    st.write(safety_labels.json())  # This shows the entire JSON content in a pretty format
+    
 
     # Zip download (optional)
     with ZipFile("transcription.zip", "w") as zipf:
