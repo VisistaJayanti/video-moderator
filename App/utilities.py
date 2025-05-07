@@ -147,23 +147,21 @@ def transcribe_yt(filename):
     # Save content safety results
     safety_labels = polling_response.json().get("content_safety_labels", {})
     #Add the debug line to check what it is returning 
-    st.write("Raw safety_labels:", safety_labels)
-    labels = safety_labels.get("results", [])
+    
+     # DEBUG: Display the full content safety labels for inspection
+    st.subheader("Content Safety Labels")
+    st.json(safety_labels)  # This shows the entire JSON content in a pretty format
 
-# ✅ Check if there are any labels returned
-    if not labels:
-     st.success("✅ No content safety violations found.")
+    # Optionally, process the labels if they exist
+    if safety_labels and "results" in safety_labels:
+        st.markdown("### Potentially Harmful Content Detected:")
+        for result in safety_labels["results"]:
+            label = result.get("label", "Unknown")
+            confidence = result.get("confidence", 0)
+            severity = result.get("severity", "unknown")
+            st.write(f"• **Label:** {label}, **Confidence:** {confidence:.2f}, **Severity:** {severity}")
     else:
-    # ✅ Safely loop over each label and display it
-     for label in labels:
-         if isinstance(label, dict) and "label" in label:
-             st.markdown(f"""
-             **Label:** {label['label']}  
-             **Confidence:** {label['confidence']:.2f}  
-             **Severity:** {label['severity']}  
-             """)
-         else:
-             st.warning("⚠️ Unexpected label format received from API.")
+        st.success("No harmful content detected.")
 
     # Zip download (optional)
     with ZipFile("transcription.zip", "w") as zipf:
