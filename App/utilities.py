@@ -109,7 +109,7 @@ def transcribe_yt(filename):
     headers = {'authorization': api_key}
     response = requests.post('https://api.assemblyai.com/v2/upload', headers=headers, data=read_file(filename))
     audio_url = response.json()['upload_url']
-    st.info("3. Audio uploaded to AssemblyAI")
+    st.info("Audio file uploaded to AssemblyAI API")
     bar.progress(50)
 
     # Transcription request with content safety
@@ -123,7 +123,9 @@ def transcribe_yt(filename):
     transcript_id = transcript_response.json()['id']
     polling_endpoint = f"https://api.assemblyai.com/v2/transcript/{transcript_id}"
 
-    st.info("4. Transcribing...")
+    st.info("Transcribing speech to text")
+    st.info("Comparing text with safety labels")
+
 
     while True:
         polling_response = requests.get(polling_endpoint, headers=headers)
@@ -131,6 +133,7 @@ def transcribe_yt(filename):
 
         if status == 'completed':
             st.success("Transcription completed")
+            st.success("Analysis completed")
             bar.progress(100)
             break
         elif status == 'error':
