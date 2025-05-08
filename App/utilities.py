@@ -9,6 +9,9 @@ import yt_dlp
 from yt_dlp import YoutubeDL
 from zipfile import ZipFile
 
+#Importing collections for data visualization
+from collections import defaultdict
+
 #You are creating a status bar so that they know what is the progress of your transaction 
 #Creating the progress bar 
 bar = st.progress(0)
@@ -154,6 +157,40 @@ def transcribe_yt(filename):
      # DEBUG: Display the full content safety labels for inspection
     st.subheader("Analysis of the video")
     st.json(safety_labels)  # This shows the entire JSON content in a pretty format
+
+
+    #CREATING THE VISUALIZATIONS
+    def analyze_labels_statistics(results):
+        label_stats = defaultdict(lambda: {"total_confidence": 0.0, "count": 0, "severities": []})
+        suitability_flag = True
+
+        for result in results:
+            label = result.get("label", "").lower()
+            confidence = result.get("confidence", 0.0)
+            severity = result.get("severity", "").lower()
+
+            if label != "unknown" and confidence>0 and severity!= "unknown":
+                label_stats[label]["total_confidence"] += confidence
+                label_stats[label]["count"] += 1
+                label_stats["severoties"].append(severity)
+
+        output_stats = []
+
+        for label, data in label_stats.items():
+            avg_confidence = data["total_confidence"]/data["count"]
+            common_severity = max(set(data["severities"]), key=data["severities"].count)
+
+            if common_severity in ["medium", "high"] or avg_confidence>0.6:
+                suitability_flag = False
+            
+            output_stats.append({
+                "label": label,
+                "average_confidence": avg_confidence,
+                "common_severity": common_severity,
+            })
+
+        return output_stats, suitability_flag
+
     
 
     # Zip download (optional)
