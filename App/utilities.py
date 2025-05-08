@@ -193,6 +193,27 @@ def transcribe_yt(filename):
 
     
 
+    #Assuming 'safety_labels' is the JSON you get from the API 
+    results = safety_labels.get("results", [])
+    if results:
+     st.markdown("Statistics of the video")
+     stats, is_suitable = analyze_labels_statistics(results)
+
+     for entry in stats:
+         st.markdown(f"Label: **{entry['label'].capitalize()}**")
+         st.markdown(f"- **Average confidence: ** `{entry['average_confidence']* 100:.2f}%")
+         st.progress(min(int(entry['average_confidence']*100),100))
+         st.markdown(f"- **Common Severity:** `{entry['common_severity'].capitalize()}`")
+    
+     st.markdown("---")
+     if is_suitable:
+         st.success("✅ This video is suitable for kids.")
+     else:
+         st.error("❌ This video is **not** suitable for kids.")
+    else:
+     st.info("ℹ️ No content safety data to show statistics.")
+
+
     # Zip download (optional)
     with ZipFile("transcription.zip", "w") as zipf:
         zipf.write("transcript.txt")

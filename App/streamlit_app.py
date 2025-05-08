@@ -5,10 +5,7 @@ import yt_dlp
 from utilities import get_yt, upload_audio, transcribe_yt
 from PIL import Image
 
-#Importing the function from utilities for visualization 
-from utilities import analyze_label_statistics
-from utilities import transcribe_yt
-from utilities import safety_labels
+
 
 
 #Loading the image 
@@ -57,22 +54,3 @@ with st.sidebar.expander("Refer to the example URL: "):
     st.code("https://www.youtube.com/watch?v=ARECxDukHvE")
 
 
-#Assuming 'safety_labels' is the JSON you get from the API 
-results = safety_labels.get("results", [])
-if results:
-    st.markdown("Statistics of the video")
-    stats, is_suitable = analyze_label_statistics(results)
-
-    for entry in stats:
-        st.markdown(f"Label: **{entry['label'].capitalize()}**")
-        st.markdown(f"- **Average confidence: ** `{entry['average_confidence']* 100:.2f}%")
-        st.progress(min(int(entry['average_confidence']*100),100))
-        st.markdown(f"- **Common Severity:** `{entry['common_severity'].capitalize()}`")
-    
-    st.markdown("---")
-    if is_suitable:
-        st.success("✅ This video is suitable for kids.")
-    else:
-        st.error("❌ This video is **not** suitable for kids.")
-else:
-    st.info("ℹ️ No content safety data to show statistics.")
