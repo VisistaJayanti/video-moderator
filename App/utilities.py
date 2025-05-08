@@ -152,7 +152,7 @@ def transcribe_yt(filename):
     #Add the debug line to check what it is returning 
     
      # DEBUG: Display the full content safety labels for inspection
-    st.subheader("Content Safety Labels")
+    st.subheader("Analysis of the video")
     st.json(safety_labels)  # This shows the entire JSON content in a pretty format
     
 
