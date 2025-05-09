@@ -172,7 +172,7 @@ def transcribe_yt(filename):
             if label != "unknown" and confidence>0 and severity!= "unknown":
                 label_stats[label]["total_confidence"] += confidence
                 label_stats[label]["count"] += 1
-                label_stats["severoties"].append(severity)
+                label_stats["severities"].append(severity)
 
         output_stats = []
 
