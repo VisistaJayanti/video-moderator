@@ -54,3 +54,23 @@ with st.sidebar.expander("Refer to the example URL: "):
     st.code("https://www.youtube.com/watch?v=ARECxDukHvE")
 
 
+#Creating the dashboard 
+video_stats = st.session_state.get("video_stats", {})
+is_kid_friendly = st.session_state.get("suitable_for_kids", True)
+
+st.subheader("Video Statistics")
+
+if video_stats:
+    for label, data in video_stats.items():
+        st.markdown(f"**{label.title()}**")
+        st.progress(int(data['average_confidence']))
+        st.text(f"Confidence: {data['average_confidence']}% | Severity: {data['severity'].capitalize()}")
+        st.markdown("---")
+else:
+    st.info("No harmful content detected")
+
+st.subheader("Suitability for children")
+if is_kid_friendly:
+    st.success("This video is suitable for children")
+else:
+    st.error("This video is NOT suitable for children")
