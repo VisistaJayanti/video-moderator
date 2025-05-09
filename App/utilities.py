@@ -21,7 +21,7 @@ bar = st.progress(0)
 try:
     api_key = st.secrets["general"]["api_key"]
     #chatgpt code
-    st.write("Available secrets:", st.secrets)
+    # st.write("Available secrets:", st.secrets)
 
 except KeyError:
     st.error("API key not found, check your secrets configuration.")
