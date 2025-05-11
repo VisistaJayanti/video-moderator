@@ -97,7 +97,7 @@ def upload_audio(filename):
 
             
 #Chatgpt code 
-def transcribe_yt(audio_file):
+def transcribe_yt(filename):
     bar.progress(30)
     
     def read_file(filename, chunk_size=5242880):
@@ -109,7 +109,7 @@ def transcribe_yt(audio_file):
                 yield data
 
     headers = {'authorization': api_key}
-    response = requests.post('https://api.assemblyai.com/v2/upload', headers=headers, data=read_file(audio_file))
+    response = requests.post('https://api.assemblyai.com/v2/upload', headers=headers, data=read_file(filename))
     audio_url = response.json()['upload_url']
     st.info("2. Audio file uploaded to AssemblyAI API")
     bar.progress(50)
