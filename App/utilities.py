@@ -73,7 +73,20 @@ def transcribe_yt(filename):
     #Calling the API
     transcribe_endpoint = "https://api.assemblyai.com/v2/transcript"
     response = requests.post(transcribe_endpoint, json=transcript_request, headers=headers)
-    transcript_id = response.json()['id']
+    # transcript_id = response.json()['id']
+
+
+    #REPLACING THIS CODE WITH CHATGPT CODE 
+    response_json = response.json()
+    #Checking if 'id' exists in the response
+    if 'id' not in response_json:
+        print("Error: 'id' not found in response.")
+        print("Full response:", response_json)
+        return {}
+    
+    transcript_id = response_json['id']
+    
+    
     polling_endpoint = f"https://api.assemblyai.com/v2/transcript/{transcript_id}"
 
     status = 'queued'
