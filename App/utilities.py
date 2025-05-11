@@ -9,8 +9,9 @@ import yt_dlp
 from yt_dlp import YoutubeDL
 from zipfile import ZipFile
 
-#Importing collections for data visualization
+#Importing collections and matplotlib for data visualization
 from collections import defaultdict
+import matplotlib.pyplot as plt
 
 #You are creating a status bar so that they know what is the progress of your transaction 
 #Creating the progress bar 
@@ -161,7 +162,13 @@ def transcribe_yt(filename):
 
     #CREATING THE VISUALIZATIONS
     def analyze_labels_statistics(results):
-        label_stats = defaultdict(lambda: {"total_confidence": 0.0, "count": 0, "severities": []})
+        label_stats = defaultdict(lambda: {
+            "total_confidence": 0.0,
+            "count": 0,
+            "severities": [] 
+        })
+
+        #Flag for suitability
         suitability_flag = True
 
         for result in results:
@@ -169,51 +176,76 @@ def transcribe_yt(filename):
             confidence = result.get("confidence", 0.0)
             severity = result.get("severity", "").lower()
 
-            if label != "unknown" and confidence>0 and severity!= "unknown":
+            if label != "unknown" and confidence > 0 and severity != "unknown":
                 label_stats[label]["total_confidence"] += confidence
                 label_stats[label]["count"] += 1
-                label_stats["severities"].append(severity)
+                label_stats[label]["severities"].append(severity)
 
         output_stats = []
+        severity_distribution = defaultdict(int)
 
         for label, data in label_stats.items():
-            avg_confidence = data["total_confidence"]/data["count"]
+            avg_confidence = data["total_confidence"] / data["count"]
             common_severity = max(set(data["severities"]), key=data["severities"].count)
 
-            if common_severity in ["medium", "high"] or avg_confidence>0.6:
+            #Count severity levels
+            severity_distribution[common_severity] += 1
+
+            #Suitability check: over 70% total confidence or 70% severity count
+            if avg_confidence > 0.70 or (data["count"] / len(results)) >0.70:
                 suitability_flag = False
-            
+
             output_stats.append({
                 "label": label,
+                "total_confidence": data["total_confidence"],
                 "average_confidence": avg_confidence,
                 "common_severity": common_severity,
+                "count": data["count"],
+                "severity_percent": (data["count"] / len(results)) * 100
             })
 
-        return output_stats, suitability_flag
-
+        return output_stats, suitability_flag, severity_distribution
     
-
+    
+    #Getting the results
     #Assuming 'safety_labels' is the JSON you get from the API 
     results = safety_labels.get("results", [])
     if results:
-     st.markdown("Statistics of the video")
-     stats, is_suitable = analyze_labels_statistics(results)
+        st.markdown("## 📊 Statistics of the Video")
+        stats, is_suitable, severity_dist = analyze_labels_statistics(results)
 
-     for entry in stats:
-         st.markdown(f"Label: **{entry['label'].capitalize()}**")
-         st.markdown(f"- **Average confidence: ** {entry['average_confidence']* 100:.2f}%")
-         st.progress(min(int(entry['average_confidence']*100),100))
-         st.markdown(f"- **Common Severity:** {entry['common_severity'].capitalize()}")
-    
-     st.markdown("---")
-     if is_suitable:
-         st.success("✅ This video is suitable for kids.")
-     else:
-         st.error("❌ This video is **not** suitable for kids.")
+        for entry in stats:
+            st.markdown(f"### Label: **{entry['label'].capitalize()}**")
+            st.markdown(f"- **Total Confidence:** {entry['total_confidence'] * 100:.2f}%")
+            st.progress(min(int(entry['total_confidence'] * 100), 100))
+            st.markdown(f"- **Common Severity:** `{entry['common_severity'].capitalize()}`")
+            st.markdown(f"- **Count:** {entry['count']}")
+            st.markdown(f"- **Severity Share:** {entry['severity_percent']:.2f}%")
+            st.markdown("---")
+
+        #Suitability result
+        if is_suitable:
+            st.success("✅ This video is suitable for children.")
+        else:
+            st.error("❌ This video is not suitable for children.")
+        
+        #Severity Pie Chart
+        if severity_dist:
+            st.markdown("### Severity Distribution")
+            fig, ax = plt.subplots()
+            labels = list(severity_dist.keys())
+            sizes = list(severity_dist.values())
+            ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90)
+            ax.axis('equal')
+            st.pyplot(fig)
     else:
-     st.info("ℹ️ No content safety data to show statistics.")
+        st.info("ℹ️ No content safety data to show statistics")
+    
 
 
+
+
+   
     # Zip download (optional)
     with ZipFile("transcription.zip", "w") as zipf:
         zipf.write("transcript.txt")
