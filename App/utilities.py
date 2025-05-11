@@ -1,4 +1,3 @@
-
 #Creating the utilities function
 #These contain all the functions requried for the transcription, translation and checking of the words with the database from assemblyAI api 
 #Importing the packages and libraries required 
@@ -9,6 +8,8 @@ import requests
 import yt_dlp
 from yt_dlp import YoutubeDL
 from zipfile import ZipFile
+
+#Importing collections for data visualization
 from collections import defaultdict
 
 #You are creating a status bar so that they know what is the progress of your transaction 
@@ -157,44 +158,62 @@ def transcribe_yt(filename):
     st.subheader("Analysis of the video")
     st.json(safety_labels)  # This shows the entire JSON content in a pretty format
 
-    #Saving labels to a file 
-    with open("safety_labels.json", "w") as f:
-        f.write(str(safety_labels))
-    
-    #Aggregate stats by label 
-    label_stats = defaultdict(lambda: {'total_confidence': 0.0, 'count': 0, 'severity_levels': []})
 
-    if "results" in safety_labels:
-        for result in safety_labels["results"]:
-            for label_info in result.get("labels", []):
-                name = label_info.get("label")
-                confidence = label_info.get("confidence", 0.0)
-                severity = label_info.get("severity", "unknown")
+    #CREATING THE VISUALIZATIONS
+    def analyze_labels_statistics(results):
+        label_stats = defaultdict(lambda: {"total_confidence": 0.0, "count": 0, "severities": []})
+        suitability_flag = True
 
-                if name:
-                    label_stats[name]["total_confidence"] += confidence
-                    label_stats[name]["count"] += 1
-                    label_stats[name]["severity_levels"].append(severity)
-        
-        #Calculating average confidence and most common severity
-        final_stats = {}
-        for label, stats in label_stats.items():
-            avg_confidence = stats['total_confidence']/stats['count']
-            most_common_severity = max(set(stats['severity_levels']), key=stats['severity_levels'].count)
-            final_stats[label] = {
-                'average_confidence': round(avg_confidence*100,2),
-                'severity': most_common_severity
-            }
-        
-        #Determining if it is suitable for kids or not 
-        is_suitable_for_kids = all(
-            info.get("severity", "unknown").lower() in ["low", "unknown"]
-            for info in final_stats.values()
-        )
+        for result in results:
+            label = result.get("label", "").lower()
+            confidence = result.get("confidence", 0.0)
+            severity = result.get("severity", "").lower()
+
+            if label != "unknown" and confidence>0 and severity!= "unknown":
+                label_stats[label]["total_confidence"] += confidence
+                label_stats[label]["count"] += 1
+                label_stats["severities"].append(severity)
+
+        output_stats = []
+
+        for label, data in label_stats.items():
+            avg_confidence = data["total_confidence"]/data["count"]
+            common_severity = max(set(data["severities"]), key=data["severities"].count)
+
+            if common_severity in ["medium", "high"] or avg_confidence>0.6:
+                suitability_flag = False
+            
+            output_stats.append({
+                "label": label,
+                "average_confidence": avg_confidence,
+                "common_severity": common_severity,
+            })
+
+        return output_stats, suitability_flag
+
     
+
+    #Assuming 'safety_labels' is the JSON you get from the API 
+    results = safety_labels.get("results", [])
+    if results:
+     st.markdown("Statistics of the video")
+     stats, is_suitable = analyze_labels_statistics(results)
+
+     for entry in stats:
+         st.markdown(f"Label: **{entry['label'].capitalize()}**")
+         st.markdown(f"- **Average confidence: ** {entry['average_confidence']* 100:.2f}%")
+         st.progress(min(int(entry['average_confidence']*100),100))
+         st.markdown(f"- **Common Severity:** {entry['common_severity'].capitalize()}")
+    
+     st.markdown("---")
+     if is_suitable:
+         st.success("✅ This video is suitable for kids.")
+     else:
+         st.error("❌ This video is **not** suitable for kids.")
     else:
-        final_stats = {}
-        is_suitable_for_kids = True
-    
-    st.session_state["video_stats"] = final_stats
-    st.session_state["suitable_for_kids"] = is_suitable_for_kids
+     st.info("ℹ️ No content safety data to show statistics.")
+
+
+    # Zip download (optional)
+    with ZipFile("transcription.zip", "w") as zipf:
+        zipf.write("transcript.txt")
