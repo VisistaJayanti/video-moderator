@@ -5,9 +5,6 @@ import yt_dlp
 from utilities import get_yt, upload_audio, transcribe_yt
 from PIL import Image
 
-
-
-
 #Loading the image 
 logo = Image.open("Assets/logo.png")
 
@@ -16,13 +13,13 @@ col1, col2 = st.columns([4,6])
 with col1:
     st.image(logo, width=70)
 with col2:
-    st.title("Gaming Videos and Website Moderator")
+    st.title("Gaming Videos Moderator")
 
 
 #Creating the front-end 
 # st.markdown("Gaming Video and Website Moderator")
 # st.title("Gaming Videos and Website Moderator")
-st.markdown("Check gaming video and website suitability for your child")
+st.markdown("Check gaming video suitability for your child")
 st.warning("Awaiting URL input in the sidebar")
 
 #Creating the sidebar
