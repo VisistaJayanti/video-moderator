@@ -31,7 +31,7 @@ def get_yt(URL):
     bar.progress(10)
     ydl_opts = {
         'format': 'bestaudio/best',
-        'outtmpl': 'download_audio.%(ext)s',
+        'outtmpl': 'downloaded_audio.%(ext)s',
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
