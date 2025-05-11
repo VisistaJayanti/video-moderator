@@ -1,6 +1,7 @@
-#New chatgpt code 
-#Let us see if this works 
-#Importing the packages 
+
+#Creating the utilities function
+#These contain all the functions requried for the transcription, translation and checking of the words with the database from assemblyAI api 
+#Importing the packages and libraries required 
 import streamlit as st
 import os
 from time import sleep
@@ -10,25 +11,43 @@ from yt_dlp import YoutubeDL
 from zipfile import ZipFile
 from collections import defaultdict
 
-#Creating the original bar
+#You are creating a status bar so that they know what is the progress of your transaction 
+#Creating the progress bar 
 bar = st.progress(0)
 
-#Getting the api key
+#Taking the API 
+#Making a try-catch block by chatgpt
 try:
     api_key = st.secrets["general"]["api_key"]
+    #chatgpt code
+    # st.write("Available secrets:", st.secrets)
+
 except KeyError:
     st.error("API key not found, check your secrets configuration.")
     st.stop()
 
+#Retrieving the audio file from YouTube video 
+# def get_yt(URL):
+#     video = YouTube(URL)
+#     yt = video.streams.get_audio_only()
+#     yt.download()
 
+#     st.info('2. The audio file has been retrieved from your uploaded YouTube video')
+#     bar.progress(10)
+
+#Creating the headers:
 headers = {
     "authorization": api_key,
     "content_type": "application/json"
 }
 
-#Creating the function to get the input URL
+
+#Retrieving the audio file from YouTube by using yt_dlp
 def get_yt(URL):
+    
+    #Showing the bar progress
     bar.progress(10)
+
     ydl_opts = {
         'format': 'bestaudio/best',
         'outtmpl': 'downloaded_audio.%(ext)s',
@@ -42,99 +61,140 @@ def get_yt(URL):
 
     with YoutubeDL(ydl_opts) as ydl:
         ydl.download([URL])
+    
+    #Updating the bar progress
     bar.progress(20)
-    st.success("1. Audio file of your YouTube video has been successfully downloaded as mp3.")
+    st.success("1. Audio file has been successfully downloaded as mp3.")
     return "downloaded_audio.mp3"
+#Uploading the audio file to assemblyAI
+#The automatic speech to text translation will be doen by assemblyAI
+# def transcribe_yt():
+#     current_dir = os.getcwd()
 
-#Uploading audio 
+#     for file in os.listdir(current_dir):
+#         if file.endswith(".mp4"):
+#             mp4_file = os.path.join(current_dir, file)
+
+#     filename = mp4_file
+#     bar.progress(20)
+
+
+#UPLOADING THE AUDIO TO ASSEMBLY AI 
 def upload_audio(filename):
-    with open(filename, 'rb') as f:
-        response = requests.post(
-            'https://api.assemblyai.com/v2/upload',
-            headers = {'authorization': api_key},
-            files = {'file': f}
-        )
+    def read_file(filename, chunk_size=5242880):
+        with open(filename, 'rb') as _file:
+            while True:
+                data = _file.read(chunk_size)
+                if not data:
+                    break
+                yield data
+    
+    upload_url = 'https://api.assemblyai.com/v2/upload'
+    response = requests.post(upload_url, headers={"authorization": api_key}, data = read_file(filename))
     bar.progress(40)
-    st.success("2. Audio file has been uploaded to AssemblyAI API.")
     return response.json()['upload_url']
 
-#Creating the function to transcribe speech to text 
+
+            
+#Chatgpt code 
 def transcribe_yt(filename):
-    upload_url = upload_audio(filename)
-    transcript_request = {
-        "audio_url": upload_url,
-        "iab_categories": True,
-        "auto_chapters": True,
-        "summarization": True,
-        "summary_model": "informative",
-        "summary_type": "bullets"
+    bar.progress(30)
+    
+    def read_file(filename, chunk_size=5242880):
+        with open(filename, 'rb') as _file:
+            while True:
+                data = _file.read(chunk_size)
+                if not data:
+                    break
+                yield data
+
+    headers = {'authorization': api_key}
+    response = requests.post('https://api.assemblyai.com/v2/upload', headers=headers, data=read_file(filename))
+    audio_url = response.json()['upload_url']
+    st.info("2. Audio file uploaded to AssemblyAI API")
+    bar.progress(50)
+
+    # Transcription request with content safety
+    endpoint = "https://api.assemblyai.com/v2/transcript"
+    json = {
+        "audio_url": audio_url,
+        "content_safety": True,
     }
 
-    #Calling the API
-    transcribe_endpoint = "https://api.assemblyai.com/v2/transcript"
-    response = requests.post(transcribe_endpoint, json=transcript_request, headers=headers)
-    # transcript_id = response.json()['id']
-
-
-    #REPLACING THIS CODE WITH CHATGPT CODE 
-    response_json = response.json()
-    #Checking if 'id' exists in the response
-    if 'id' not in response_json:
-        print("Error: 'id' not found in response.")
-        print("Full response:", response_json)
-        return {}
-    
-    transcript_id = response_json['id']
-    
-    
+    transcript_response = requests.post(endpoint, json=json, headers=headers)
+    transcript_id = transcript_response.json()['id']
     polling_endpoint = f"https://api.assemblyai.com/v2/transcript/{transcript_id}"
 
-    status = 'queued'
-    bar.progress(60)
-    st.success("3. The audio file speech is being converted to text")
-    while status not in ('completed', 'error'):
+    st.info("3. Transcribing speech to text")
+    st.info("4. Comparing text with safety labels")
+
+
+    while True:
         polling_response = requests.get(polling_endpoint, headers=headers)
         status = polling_response.json()['status']
-        sleep(4) 
-    
-    if status=='error':
-        st.error("Transcription failed.")
-        return {}
-    
-    bar.progress(90)
-    st.success("4. Transcription complete")
-    st.success("5. Text is being compared to safety labels")
 
-    result = polling_response.json()
-    zip_file = "transcription.zip"
-    with ZipFile(zip_file, 'w') as zipf:
-        zipf.writestr("transcription.txt", result.get('text', ''))
+        if status == 'completed':
+            st.success("5. Transcription completed")
+            st.success("6. Analysis completed")
+            bar.progress(100)
+            break
+        elif status == 'error':
+            st.error("Transcription failed.")
+            return
+        sleep(3)
 
-    #Parse and build final stats
+    # Save transcription text
+    transcript_text = polling_response.json()['text']
+    with open("transcript.txt", "w") as f:
+        f.write(transcript_text)
+
+    # Save content safety results
+    # Save content safety results
+    safety_labels = polling_response.json().get("content_safety_labels", {})
+    #Add the debug line to check what it is returning 
+    
+     # DEBUG: Display the full content safety labels for inspection
+    st.subheader("Analysis of the video")
+    st.json(safety_labels)  # This shows the entire JSON content in a pretty format
+
+    #Saving labels to a file 
+    with open("safety_labels.json", "w") as f:
+        f.write(str(safety_labels))
+    
+    #Aggregate stats by label 
+    label_stats = defaultdict(lambda: {'total_confidence': 0.0, 'count': 0, 'severity_levels': []})
+
+    for label in safety_labels:
+        name = label.get("label")
+        confidence = label.get("confidence", 0)
+        severity = label.get("severity", "unknown")
+
+        if name:
+            label_stats[name]['total_confidence'] += confidence
+            label_stats[name]['count'] += 1
+            label_stats[name]['severity_levels'].append(severity)
+
+    #Calculate the average confidence and most frequent severity for each label
     final_stats = {}
-    if "iab_categories_result" in result and "results" in result["iab_categories_result"]:
-        label_data = defaultdict(list)
-        for item in result["iab_categories_result"]["results"]:
-            label_data[item["label"]].append(item["relevance"])
+    for label, stats in label_stats.items():
+        avg_confidence = stats['total_confidence']/stats['count']
+        most_common_severity = max(set(stats['severity_levels']), key=['severity_levels'].count)
+        final_stats[label] = {
+            'average_confidence': round(avg_confidence * 100, 2),
+            'severity': most_common_severity
+        }
 
-        for label, relevance in label_data.items():
-            avg_confidence = round(sum(relevance)/len(relevance)*100, 2)
-            count = len(relevance)
-            severity = "low"
-            if avg_confidence > 70: severity = "high"
-            elif avg_confidence > 50: severity = "medium"
+    #Determine if suitable for kids 
+    is_suitable_for_kids = all(
+        severity_info['severity'].lower() in ['low', 'unknown']
+        for severity_info in final_stats.values()
+    )
 
-            #Setting up the final statistics 
-            final_stats[label] = {
-                "count": count,
-                "avg_confidence": avg_confidence,
-                "severity": severity
-            }
-        
-        bar.progress(100)
-        st.success("6. Analysis completed")
-        return final_stats
+    st.session_state["video_stats"] = final_stats
+    st.session_state["suitable_for_kids"] = is_suitable_for_kids
 
+    return transcript_text
 
-
-
+    # Zip download (optional)
+    with ZipFile("transcription.zip", "w") as zipf:
+        zipf.write("transcript.txt")
