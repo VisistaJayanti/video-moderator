@@ -61,9 +61,9 @@ if not final_stats:
 else:
     for label, stats in final_stats.items():
         st.write(f"### Label: {label.capitalize()}")
-        st.progress(min(int(stats["avg_confidence"]), 100))
+        st.progress(min(int(stats["average_confidence"]), 100))
         st.write(f"Count: {stats['count']}")
-        st.write(f"Confidence: {stats['avg_confidence']}%")
+        st.write(f"Confidence: {stats['average_confidence']}%")
 
     severe_labels = [l for l, s in final_stats.items() if s["severity"] in ["high", "medium"]]
     if severe_labels:

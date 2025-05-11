@@ -188,7 +188,7 @@ def transcribe_yt(filename):
         
         #Determining if it is suitable for kids or not 
         is_suitable_for_kids = all(
-            info["severity"].lower() in ["low", "unknown"]
+            info.get("severity", "unknown").lower() in ["low", "unknown"]
             for info in final_stats.values()
         )
     
