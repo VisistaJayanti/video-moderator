@@ -164,37 +164,37 @@ def transcribe_yt(filename):
     #Aggregate stats by label 
     label_stats = defaultdict(lambda: {'total_confidence': 0.0, 'count': 0, 'severity_levels': []})
 
-    for label in safety_labels:
-        name = label.get("label")
-        confidence = label.get("confidence", 0)
-        severity = label.get("severity", "unknown")
+    if "results" in safety_labels:
+        for result in safety_labels["results"]:
+            for label_info in result.get("labels", []):
+                name = label_info.get("label")
+                confidence = label_info.get("confidence", 0.0)
+                severity = label_info.get("severity", "unknown")
 
-        if name:
-            label_stats[name]['total_confidence'] += confidence
-            label_stats[name]['count'] += 1
-            label_stats[name]['severity_levels'].append(severity)
-
-    #Calculate the average confidence and most frequent severity for each label
-    final_stats = {}
-    for label, stats in label_stats.items():
-        avg_confidence = stats['total_confidence']/stats['count']
-        most_common_severity = max(set(stats['severity_levels']), key=['severity_levels'].count)
-        final_stats[label] = {
-            'average_confidence': round(avg_confidence * 100, 2),
-            'severity': most_common_severity
-        }
-
-    #Determine if suitable for kids 
-    is_suitable_for_kids = all(
-        severity_info['severity'].lower() in ['low', 'unknown']
-        for severity_info in final_stats.values()
-    )
-
+                if name:
+                    label_stats[name]["total_confidence"] += confidence
+                    label_stats[name]["count"] += 1
+                    label_stats[name]["severity_levels"].append(severity)
+        
+        #Calculating average confidence and most common severity
+        final_stats = {}
+        for label, stats in label_stats.items():
+            avg_confidence = stats['total_confidence']/stats['count']
+            most_common_severity = max(set(stats['severity_levels']), key=stats['severity_levels'].count)
+            final_stats[label] = {
+                'average_confidence': round(avg_confidence*100,2),
+                'severity': most_common_severity
+            }
+        
+        #Determining if it is suitable for kids or not 
+        is_suitable_for_kids = all(
+            info["severity"].lower() in ["low", "unknown"]
+            for info in final_stats.values()
+        )
+    
+    else:
+        final_stats = {}
+        is_suitable_for_kids = True
+    
     st.session_state["video_stats"] = final_stats
     st.session_state["suitable_for_kids"] = is_suitable_for_kids
-
-    return transcript_text
-
-    # Zip download (optional)
-    with ZipFile("transcription.zip", "w") as zipf:
-        zipf.write("transcript.txt")
