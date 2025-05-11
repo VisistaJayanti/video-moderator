@@ -29,7 +29,7 @@ with st.sidebar.form(key='my_form'):
     URL = st.text_input("Enter URL of YouTube vides or shorts ")
     submit_button = st.form_submit_button(label="Go")
 
-#Run custom functions if URL is entered 
+#Run custom functions if URL is ejtedff
 if submit_button:
     audio_file = get_yt(URL)
     audio_url = upload_audio(audio_file)
