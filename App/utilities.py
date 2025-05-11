@@ -99,10 +99,10 @@ def transcribe_yt(filename):
 
     #Parse and build final stats
     final_stats = {}
-    if "iab_categories_result" in result and "results" in result ["iab_categories_result"]:
+    if "iab_categories_result" in result and "results" in result["iab_categories_result"]:
         label_data = defaultdict(list)
         for item in result["iab_categories_result"]["results"]:
-            label_data[item["label"].append(item["relevance"])]
+            label_data[item["label"]].append(item["relevance"])
 
         for label, relevance in label_data.items():
             avg_confidence = round(sum(relevance)/len(relevance)*100, 2)
