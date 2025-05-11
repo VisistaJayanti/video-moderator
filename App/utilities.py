@@ -212,9 +212,9 @@ def transcribe_yt(filename):
     results = safety_labels.get("results", [])
     if results:
         st.markdown("## 📊 Statistics of the Video")
-        stats, is_suitable, severity_dist = analyze_labels_statistics(results)
+        output_stats, is_suitable, severity_distribution = analyze_labels_statistics(results)
 
-        for entry in stats:
+        for entry in output_stats:
             st.markdown(f"### Label: **{entry['label'].capitalize()}**")
             st.markdown(f"- **Total Confidence:** {entry['total_confidence'] * 100:.2f}%")
             st.progress(min(int(entry['total_confidence'] * 100), 100))
@@ -230,11 +230,11 @@ def transcribe_yt(filename):
             st.error("❌ This video is not suitable for children.")
         
         #Severity Pie Chart
-        if severity_dist:
+        if severity_distribution:
             st.markdown("### Severity Distribution")
             fig, ax = plt.subplots()
-            labels = list(severity_dist.keys())
-            sizes = list(severity_dist.values())
+            labels = list(severity_distribution.keys())
+            sizes = list(severity_distribution.values())
             ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90)
             ax.axis('equal')
             st.pyplot(fig)
