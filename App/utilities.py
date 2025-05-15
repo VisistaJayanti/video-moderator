@@ -8,10 +8,12 @@ import requests
 import yt_dlp
 from yt_dlp import YoutubeDL
 from zipfile import ZipFile
+import assemblyai as aai
 
 #Importing collections and matplotlib for data visualization
 from collections import defaultdict
 import matplotlib.pyplot as plt
+import pandas as pd
 
 #You are creating a status bar so that they know what is the progress of your transaction 
 #Creating the progress bar 
@@ -68,18 +70,6 @@ def get_yt(URL):
     bar.progress(20)
     st.success("1. Audio file has been successfully downloaded as mp3.")
     return "downloaded_audio.mp3"
-#Uploading the audio file to assemblyAI
-#The automatic speech to text translation will be doen by assemblyAI
-# def transcribe_yt():
-#     current_dir = os.getcwd()
-
-#     for file in os.listdir(current_dir):
-#         if file.endswith(".mp4"):
-#             mp4_file = os.path.join(current_dir, file)
-
-#     filename = mp4_file
-#     bar.progress(20)
-
 
 #UPLOADING THE AUDIO TO ASSEMBLY AI 
 def upload_audio(filename):
@@ -96,156 +86,189 @@ def upload_audio(filename):
     bar.progress(40)
     return response.json()['upload_url']
 
-
-            
-#Chatgpt code 
 def transcribe_yt(filename):
     bar.progress(30)
     
-    def read_file(filename, chunk_size=5242880):
-        with open(filename, 'rb') as _file:
-            while True:
-                data = _file.read(chunk_size)
-                if not data:
-                    break
-                yield data
-
-    headers = {'authorization': api_key}
-    response = requests.post('https://api.assemblyai.com/v2/upload', headers=headers, data=read_file(filename))
-    audio_url = response.json()['upload_url']
-    st.info("2. Audio file uploaded to AssemblyAI API")
-    bar.progress(50)
-
-    # Transcription request with content safety
-    endpoint = "https://api.assemblyai.com/v2/transcript"
-    json = {
-        "audio_url": audio_url,
-        "content_safety": True,
-    }
-
-    transcript_response = requests.post(endpoint, json=json, headers=headers)
-    transcript_id = transcript_response.json()['id']
-    polling_endpoint = f"https://api.assemblyai.com/v2/transcript/{transcript_id}"
-
+    # Set up AssemblyAI SDK
+    aai.settings.api_key = api_key
+    transcriber = aai.Transcriber()
+    
+    st.info("2. Uploading audio to AssemblyAI API")
+    bar.progress(40)
+    
+    # Create transcription configuration with content safety enabled
+    config = aai.TranscriptionConfig(
+        content_safety=True,
+        speech_model=aai.SpeechModel.slam_1
+    )
+    
     st.info("3. Transcribing speech to text")
-    st.info("4. Comparing text with safety labels")
-
-
-    while True:
-        polling_response = requests.get(polling_endpoint, headers=headers)
-        status = polling_response.json()['status']
-
-        if status == 'completed':
-            st.success("5. Transcription completed")
-            st.success("6. Analysis completed")
-            bar.progress(100)
-            break
-        elif status == 'error':
-            st.error("Transcription failed.")
-            return
-        sleep(3)
-
+    st.info("4. Analyzing content safety")
+    
+    # Start transcription
+    transcript = transcriber.transcribe(filename, config)
+    
+    if transcript.status == aai.TranscriptStatus.error:
+        st.error(f"Transcription failed: {transcript.error}")
+        return
+    
+    st.success("5. Transcription completed")
+    st.success("6. Analysis completed")
+    bar.progress(100)
+    
     # Save transcription text
-    transcript_text = polling_response.json()['text']
     with open("transcript.txt", "w") as f:
-        f.write(transcript_text)
-
-    # Save content safety results
-    # Save content safety results
-    safety_labels = polling_response.json().get("content_safety_labels", {})
-    #Add the debug line to check what it is returning 
+        f.write(transcript.text)
     
-     # DEBUG: Display the full content safety labels for inspection
-    st.subheader("Analysis of the video")
-    st.json(safety_labels)  # This shows the entire JSON content in a pretty format
-
-
-    #CREATING THE VISUALIZATIONS
-    def analyze_labels_statistics(results):
-        label_stats = defaultdict(lambda: {
-            "total_confidence": 0.0,
-            "count": 0,
-            "severities": [] 
-        })
-
-        #Flag for suitability
-        suitability_flag = True
-
-        for result in results:
-            label = result.get("label", "").lower()
-            confidence = result.get("confidence", 0.0)
-            severity = result.get("severity", "").lower()
-
-            if label != "unknown" and confidence > 0 and severity != "unknown":
-                label_stats[label]["total_confidence"] += confidence
-                label_stats[label]["count"] += 1
-                label_stats[label]["severities"].append(severity)
-
-        output_stats = []
-        severity_distribution = defaultdict(int)
-
-        for label, data in label_stats.items():
-            avg_confidence = data["total_confidence"] / data["count"]
-            common_severity = max(set(data["severities"]), key=data["severities"].count)
-
-            #Count severity levels
-            severity_distribution[common_severity] += 1
-
-            #Suitability check: over 70% total confidence or 70% severity count
-            if avg_confidence > 0.70 or (data["count"] / len(results)) >0.70:
-                suitability_flag = False
-
-            output_stats.append({
-                "label": label,
-                "total_confidence": data["total_confidence"],
-                "average_confidence": avg_confidence,
-                "common_severity": common_severity,
-                "count": data["count"],
-                "severity_percent": (data["count"] / len(results)) * 100
-            })
-
-        return output_stats, suitability_flag, severity_distribution
+    # Display analysis in UI
+    display_safety_analysis(transcript)
     
-    
-    #Getting the results
-    #Assuming 'safety_labels' is the JSON you get from the API 
-    results = safety_labels.get("results", [])
-    if results:
-        st.markdown("## 📊 Statistics of the Video")
-        output_stats, is_suitable, severity_distribution = analyze_labels_statistics(results)
-
-        for entry in output_stats:
-            st.markdown(f"### Label: **{entry['label'].capitalize()}**")
-            st.markdown(f"- **Total Confidence:** {entry['total_confidence'] * 100:.2f}%")
-            st.progress(min(int(entry['total_confidence'] * 100), 100))
-            st.markdown(f"- **Common Severity:** `{entry['common_severity'].capitalize()}`")
-            st.markdown(f"- **Count:** {entry['count']}")
-            st.markdown(f"- **Severity Share:** {entry['severity_percent']:.2f}%")
-            st.markdown("---")
-
-        #Suitability result
-        if is_suitable:
-            st.success("✅ This video is suitable for children.")
-        else:
-            st.error("❌ This video is not suitable for children.")
-        
-        #Severity Pie Chart
-        if severity_distribution:
-            st.markdown("### Severity Distribution")
-            fig, ax = plt.subplots()
-            labels = list(severity_distribution.keys())
-            sizes = list(severity_distribution.values())
-            ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90)
-            ax.axis('equal')
-            st.pyplot(fig)
-    else:
-        st.info("ℹ️ No content safety data to show statistics")
-    
-
-
-
-
-   
-    # Zip download (optional)
+    # Zip download
     with ZipFile("transcription.zip", "w") as zipf:
         zipf.write("transcript.txt")
+
+def display_safety_analysis(transcript):
+    st.header("🔍 Content Safety Analysis")
+    
+    # Display full transcript in expandable section
+    with st.expander("📝 Full Transcript"):
+        st.write(transcript.text)
+    
+    # Create tabs for different views
+    tab1, tab2, tab3 = st.tabs(["⚠️ Safety Overview", "🔎 Detailed Results", "📊 Statistics"])
+    
+    # Tab 1: Safety Overview
+    with tab1:
+        st.subheader("Safety Summary")
+        
+        # Display overall confidence scores
+        st.write("##### Content Categories Detected")
+        if not hasattr(transcript, 'content_safety') or not transcript.content_safety:
+            st.info("No content safety data available")
+        else:
+            # Create a dataframe for better display
+            summary_data = {
+                "Category": [],
+                "Confidence": []
+            }
+            
+            for label, confidence in transcript.content_safety.summary.items():
+                label_name = label.name.replace("ContentSafetyLabel.", "").capitalize()
+                summary_data["Category"].append(label_name)
+                summary_data["Confidence"].append(f"{confidence * 100:.2f}%")
+            
+            if summary_data["Category"]:
+                df = pd.DataFrame(summary_data)
+                st.dataframe(df, hide_index=True, use_container_width=True)
+                
+                # Create bar chart for confidence scores
+                fig, ax = plt.subplots(figsize=(10, 5))
+                confidence_values = [float(val.strip('%')) / 100 for val in summary_data["Confidence"]]
+                ax.barh(summary_data["Category"], confidence_values, color='salmon')
+                ax.set_xlim(0, 1)
+                ax.set_xlabel('Confidence Score')
+                ax.set_title('Content Safety Categories')
+                
+                # Add percentage labels
+                for i, v in enumerate(confidence_values):
+                    ax.text(v + 0.01, i, f"{v:.2%}", va='center')
+                
+                st.pyplot(fig)
+                
+                # Final safety decision
+                is_safe = all(float(conf.strip('%')) < 70 for conf in summary_data["Confidence"])
+                
+                st.markdown("### 🚨 Safety Decision")
+                if is_safe:
+                    st.success("✅ This video is suitable for children.")
+                else:
+                    st.error("❌ This video is not suitable for children.")
+                    st.warning("Content with high confidence scores (>70%) for unsafe categories was detected.")
+            else:
+                st.info("No safety concerns detected in the content.")
+                st.success("✅ This video is suitable for children.")
+    
+    # Tab 2: Detailed Results
+    with tab2:
+        st.subheader("Detailed Content Analysis")
+        
+        if not hasattr(transcript, 'content_safety') or not transcript.content_safety.results:
+            st.info("No detailed content safety data available")
+        else:
+            for i, result in enumerate(transcript.content_safety.results):
+                with st.expander(f"Segment {i+1} ({format_timestamp(result.timestamp.start)} - {format_timestamp(result.timestamp.end)})"):
+                    st.write("##### Transcript:")
+                    st.write(f"_{result.text}_")
+                    
+                    st.write("##### Safety Labels:")
+                    labels_data = []
+                    
+                    for label in result.labels:
+                        label_name = label.label.name.replace("ContentSafetyLabel.", "").capitalize()
+                        severity = f"{label.severity:.4f}" if isinstance(label.severity, float) else "None"
+                        confidence = f"{label.confidence * 100:.2f}%"
+                        
+                        labels_data.append({
+                            "Label": label_name,
+                            "Confidence": confidence,
+                            "Severity": severity
+                        })
+                    
+                    if labels_data:
+                        st.dataframe(pd.DataFrame(labels_data), hide_index=True, use_container_width=True)
+                    else:
+                        st.info("No safety labels for this segment")
+    
+    # Tab 3: Statistics
+    with tab3:
+        st.subheader("Severity Statistics")
+        
+        if not hasattr(transcript, 'content_safety') or not transcript.content_safety.severity_score_summary:
+            st.info("No severity statistics available")
+        else:
+            severity_data = []
+            
+            for label, severity_conf in transcript.content_safety.severity_score_summary.items():
+                label_name = label.name.replace("ContentSafetyLabel.", "").capitalize()
+                
+                low_conf = f"{severity_conf.low * 100:.2f}%"
+                med_conf = f"{severity_conf.medium * 100:.2f}%"
+                high_conf = f"{severity_conf.high * 100:.2f}%"
+                
+                severity_data.append({
+                    "Category": label_name,
+                    "Low Severity": low_conf,
+                    "Medium Severity": med_conf,
+                    "High Severity": high_conf
+                })
+            
+            if severity_data:
+                st.dataframe(pd.DataFrame(severity_data), hide_index=True, use_container_width=True)
+                
+                # Create stacked bar chart for severity distribution
+                fig, ax = plt.subplots(figsize=(10, 5))
+                categories = [d["Category"] for d in severity_data]
+                low_values = [float(d["Low Severity"].strip('%')) / 100 for d in severity_data]
+                med_values = [float(d["Medium Severity"].strip('%')) / 100 for d in severity_data]
+                high_values = [float(d["High Severity"].strip('%')) / 100 for d in severity_data]
+                
+                ax.barh(categories, low_values, color='green', label='Low')
+                ax.barh(categories, med_values, left=low_values, color='orange', label='Medium')
+                ax.barh(categories, high_values, left=[l+m for l,m in zip(low_values, med_values)], color='red', label='High')
+                
+                ax.set_xlim(0, 1)
+                ax.set_xlabel('Confidence Score')
+                ax.set_title('Severity Distribution by Category')
+                ax.legend(loc='upper right')
+                
+                st.pyplot(fig)
+            else:
+                st.info("No severity data available")
+
+def format_timestamp(ms):
+    """Convert milliseconds to mm:ss format"""
+    seconds = ms // 1000
+    minutes = seconds // 60
+    seconds %= 60
+    return f"{minutes:02d}:{seconds:02d}"
+    
